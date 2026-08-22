@@ -28,38 +28,26 @@ class SemanticSkillMatcher:
         model_name: str = DEFAULT_MODEL_NAME,
         device: str = "cpu",
     ) -> None:
-        # The matcher cannot work without skills to search.
         if not skills:
             raise ValueError("At least one skill is required.")
 
-        # Keep the skills in a fixed order.
-        # Each skill's position must match its embedding's position.
+        # Keep skills in a fixed order so every skill continues to
+        # correspond to the correct embedding.
         self.skills = tuple(skills)
 
-        # Load the pretrained Sentence Transformer model.
-        # The model is downloaded automatically the first time it is used.
+        # Load the pretrained embedding model.
         self.model = SentenceTransformer(
             model_name,
             device=device,
         )
 
-        # Extract only the preferred ESCO label from each Skill object.
-        #
-        # Example:
-        # Skill(preferred_label="project management", ...)
-        # becomes:
-        # "project management"
         skill_names = [
             skill.preferred_label
             for skill in self.skills
         ]
 
-        # Convert all ESCO skill names into semantic embeddings.
-        #
-        # THIS IS THE PART THAT CONVERTS ESCO SKILLS INTO EMBEDDINGS.
-        #
-        # Each skill name becomes a numerical vector representing its meaning.
-        # These embeddings are created once when the matcher is initialized.
+        # Convert all ESCO preferred skill labels into embeddings.
+        # This happens once when the matcher is initialized.
         self.skill_embeddings = self.model.encode(
             skill_names,
             convert_to_tensor=True,
@@ -73,47 +61,72 @@ class SemanticSkillMatcher:
         top_k: int = 5,
         min_score: float = 0.5,
     ) -> list[SemanticSkillMatch]:
-        # Remove unnecessary spaces from the beginning and end.
-        phrase = phrase.strip()
+        """Match one phrase against the ESCO skills."""
 
-        # An empty phrase cannot be semantically matched.
-        if not phrase:
-            raise ValueError("Phrase must not be empty.")
+        # Use the batch method internally so matching behavior remains
+        # consistent for both single and multiple phrases.
+        return self.match_many(
+            phrases=[phrase],
+            top_k=top_k,
+            min_score=min_score,
+        )[0]
 
-        # At least one result must be requested.
+    def match_many(
+        self,
+        phrases: Sequence[str],
+        top_k: int = 5,
+        min_score: float = 0.5,
+    ) -> list[list[SemanticSkillMatch]]:
+        """Match multiple phrases in one efficient model batch."""
+
         if top_k < 1:
             raise ValueError("top_k must be at least 1.")
 
-        # Convert the input phrase into an embedding.
+        if not -1.0 <= min_score <= 1.0:
+            raise ValueError(
+                "min_score must be between -1.0 and 1.0."
+            )
+
+        cleaned_phrases = [
+            phrase.strip()
+            for phrase in phrases
+        ]
+
+        # An empty collection has no phrases to match.
+        if not cleaned_phrases:
+            return []
+
+        # Individual blank phrases are likely caller mistakes.
+        if any(not phrase for phrase in cleaned_phrases):
+            raise ValueError("Phrases must not be empty.")
+
+        # Convert every candidate phrase into an embedding in one batch.
         #
-        # THIS IS THE PART THAT CONVERTS THE RESUME OR JOB PHRASE
-        # INTO AN EMBEDDING.
-        query_embedding = self.model.encode(
-            [phrase],
+        # THIS IS THE PART THAT CONVERTS ALL DOCUMENT CANDIDATES
+        # INTO EMBEDDINGS AT ONCE.
+        query_embeddings = self.model.encode(
+            cleaned_phrases,
             convert_to_tensor=True,
             normalize_embeddings=True,
             show_progress_bar=False,
         )
 
-        # Compare the phrase embedding with every ESCO skill embedding.
-        #
-        # The search returns the ESCO skills whose meanings are closest
-        # to the meaning of the input phrase.
-        results = semantic_search(
-            query_embedding,
+        # Compare every candidate embedding with every ESCO skill embedding.
+        search_results = semantic_search(
+            query_embeddings,
             self.skill_embeddings,
             top_k=min(top_k, len(self.skills)),
-        )[0]
+        )
 
-        # Convert the raw search results into SemanticSkillMatch objects.
-        #
-        # corpus_id tells us which ESCO skill produced the result.
-        # Results below min_score are removed.
+        # Convert each candidate's raw results into useful match objects.
         return [
-            SemanticSkillMatch(
-                skill=self.skills[int(result["corpus_id"])],
-                score=float(result["score"]),
-            )
-            for result in results
-            if float(result["score"]) >= min_score
+            [
+                SemanticSkillMatch(
+                    skill=self.skills[int(result["corpus_id"])],
+                    score=float(result["score"]),
+                )
+                for result in phrase_results
+                if float(result["score"]) >= min_score
+            ]
+            for phrase_results in search_results
         ]
