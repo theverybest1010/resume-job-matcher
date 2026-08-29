@@ -83,8 +83,8 @@ class CandidatePhraseExtractor:
             if chunk.end < len(document):
                 next_word = document[chunk.end]
 
-                # The recipient may be grammatically attached to either
-                # the noun phrase or its governing action verb.
+                # The recipient may be attached either to the noun phrase
+                # or to its governing action verb.
                 recipient_belongs_to_action = (
                     chunk.start
                     <= next_word.head.i
@@ -92,14 +92,17 @@ class CandidatePhraseExtractor:
                     or next_word.head.i == governing_word.i
                 )
 
-                # spaCy labels recipient phrases such as
-                # "to hospital patients" as dative.
+                # Depending on the surrounding sentence structure, spaCy
+                # may classify "to" as either a dative or a preposition.
                 #
-                # General prepositional context such as
-                # "for several clients" is not included because it can
-                # weaken the meaning of the primary skill phrase.
-                if (
+                # Checking the word itself handles both grammar parses.
+                has_recipient_context = (
                     next_word.dep_ == "dative"
+                    or next_word.lower_ == "to"
+                )
+
+                if (
+                    has_recipient_context
                     and recipient_belongs_to_action
                 ):
                     recipient_subtree = list(
