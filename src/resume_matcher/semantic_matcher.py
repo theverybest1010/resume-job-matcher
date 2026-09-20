@@ -33,7 +33,11 @@ class SemanticSkillMatcher:
 
         # Keep skills in a fixed order so every skill continues to
         # correspond to the correct embedding.
-        self.skills = tuple(skills)
+        self.skills = tuple(skill for skill in skills if skill.allow_semantic_matching)
+        if not self.skills:
+            self.model = None
+            self.skill_embeddings = None
+            return
 
         # Load the pretrained embedding model.
         self.model = SentenceTransformer(
@@ -99,6 +103,9 @@ class SemanticSkillMatcher:
         # Individual blank phrases are likely caller mistakes.
         if any(not phrase for phrase in cleaned_phrases):
             raise ValueError("Phrases must not be empty.")
+
+        if not self.skills:
+            return [[] for _ in cleaned_phrases]
 
         # Convert every candidate phrase into an embedding in one batch.
         #

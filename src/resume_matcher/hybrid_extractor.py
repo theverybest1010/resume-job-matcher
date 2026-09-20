@@ -58,8 +58,8 @@ class HybridSkillExtractor:
 
         # STEP 1: Find explicit ESCO labels and aliases.
         #
-        # Exact matches have the highest precision, so they are processed
-        # before semantic matches.
+        # Prefer explicit labels and reviewed aliases. The fixed score of
+        # 1.0 records this matching method; it is not a confidence estimate.
         exact_mentions = self.exact_extractor.extract(text)
 
         for mention in exact_mentions:
@@ -82,6 +82,19 @@ class HybridSkillExtractor:
 
         # STEP 2: Find meaningful phrases that exact matching may have missed.
         candidate_phrases = self.candidate_extractor.extract(text)
+        exact_phrases = {
+            mention.matched_text.strip().casefold()
+            for mention in exact_mentions
+        }
+        candidate_phrases = [
+            phrase for phrase in candidate_phrases
+            if phrase.strip().casefold() not in exact_phrases
+        ]
+
+        # A phrase already resolved exactly needs no competing semantic
+        # interpretation. Longer phrases containing a label remain eligible.
+        if not candidate_phrases:
+            return results
 
         # STEP 3: Match all candidate phrases semantically in one batch.
         semantic_results = self.semantic_matcher.match_many(
@@ -91,6 +104,7 @@ class HybridSkillExtractor:
         )
 
         # Each candidate phrase corresponds to one semantic result list.
+        semantic_indices: dict[str, int] = {}
         for phrase, phrase_matches in zip(
             candidate_phrases,
             semantic_results,
@@ -103,20 +117,27 @@ class HybridSkillExtractor:
             best_match = phrase_matches[0]
             skill_uri = best_match.skill.uri
 
-            # Exact matches take priority.
-            # Also prevent duplicate semantic skills.
+            semantic_mention = HybridSkillMention(
+                skill=best_match.skill,
+                matched_text=phrase,
+                source="semantic",
+                score=best_match.score,
+            )
+
+            # Keep the strongest evidence if several phrases retrieve the
+            # same skill. Previously the first phrase always won.
+            if skill_uri in semantic_indices:
+                index = semantic_indices[skill_uri]
+                if best_match.score > results[index].score:
+                    results[index] = semantic_mention
+                continue
+
+            # An existing exact match continues to take priority.
             if skill_uri in seen_skill_uris:
                 continue
 
             seen_skill_uris.add(skill_uri)
-
-            results.append(
-                HybridSkillMention(
-                    skill=best_match.skill,
-                    matched_text=phrase,
-                    source="semantic",
-                    score=best_match.score,
-                )
-            )
+            semantic_indices[skill_uri] = len(results)
+            results.append(semantic_mention)
 
         return results

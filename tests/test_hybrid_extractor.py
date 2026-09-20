@@ -156,3 +156,58 @@ def test_rejects_invalid_semantic_threshold() -> None:
             semantic_matcher=FakeSemanticMatcher([]),
             min_semantic_score=1.1,
         )
+
+
+def test_does_not_reinterpret_a_phrase_already_matched_exactly():
+    skill = make_skill("test:oop", "use object-oriented programming")
+
+    class UnexpectedSemanticMatcher:
+        def match_many(self, *args, **kwargs):
+            raise AssertionError("A resolved phrase should not be searched again.")
+
+    extractor = HybridSkillExtractor(
+        FakeExactExtractor([FakeExactMention(skill, "object-oriented programming")]),
+        FakeCandidateExtractor(["object-oriented programming"]),
+        UnexpectedSemanticMatcher(),
+    )
+    assert extractor.extract("object-oriented programming") == [
+        HybridSkillMention(skill, "object-oriented programming", "exact", 1.0),
+    ]
+
+
+def test_retains_the_strongest_semantic_evidence_for_each_skill():
+    skill = make_skill("test:care", "provide patient care")
+    extractor = HybridSkillExtractor(
+        FakeExactExtractor([]),
+        FakeCandidateExtractor(["earlier phrase", "stronger phrase", "later phrase"]),
+        FakeSemanticMatcher([
+            [SemanticSkillMatch(skill, 0.76)],
+            [SemanticSkillMatch(skill, 0.91)],
+            [SemanticSkillMatch(skill, 0.81)],
+        ]),
+    )
+    assert extractor.extract("Test document") == [
+        HybridSkillMention(skill, "stronger phrase", "semantic", 0.91),
+    ]
+
+
+def test_short_exact_skills_survive_the_semantic_candidate_filter():
+    from resume_matcher.candidate_phrases import CandidatePhraseExtractor
+    from resume_matcher.skill_extractor import ExactSkillExtractor
+
+    skills = [
+        make_skill("test:python", "Python"),
+        make_skill("test:nursing", "nursing"),
+        make_skill("test:oop", "use object-oriented programming"),
+    ]
+
+    class UnexpectedSemanticMatcher:
+        def match_many(self, *args, **kwargs):
+            raise AssertionError("Isolated words should stay out of semantic search.")
+
+    extractor = HybridSkillExtractor(
+        ExactSkillExtractor(skills), CandidatePhraseExtractor(), UnexpectedSemanticMatcher(),
+    )
+    mentions = extractor.extract("Python | nursing | OOP | Machines | Management")
+    assert {m.skill.uri for m in mentions} == {s.uri for s in skills}
+    assert all(m.source == "exact" for m in mentions)
