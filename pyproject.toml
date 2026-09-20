@@ -22,3 +22,6 @@ dev = ["pytest>=8,<10"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+resume_matcher = ["data/*.csv"]

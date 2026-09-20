@@ -17,9 +17,14 @@ class Skill:
     aliases: tuple[str, ...] #alternate names for the skills
     skill_type: str
 
+    # Ambiguous aliases require a labeled list; excluded skills need exact evidence.
+    contextual_aliases: tuple[str, ...] = ()
+    context_headings: tuple[str, ...] = ()
+    allow_semantic_matching: bool = True
+
     @property
     def labels(self) -> tuple[str, ...]:
-        return (self.preferred_label, *self.aliases) #combines official label and aliases and returns it as tuple
+        return (self.preferred_label, *self.aliases, *self.contextual_aliases) #combines official label and aliases and returns it as tuple
 
 
 #this is our loaders to load the skills from esco csv, returns list of SKILLS object 

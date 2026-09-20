@@ -1,0 +1,4 @@
+uri,preferredLabel,aliases,skillType,contextualAliases,contextHeadings,semanticMatching,replacesAliasFrom,replacesAlias,reason
+urn:resume-job-matcher:skill:data-structures,data structures,data structure,knowledge,,,true,,,Specific concept absent from reviewed ESCO export; not equivalent to computer science or data models.
+urn:resume-job-matcher:skill:html,HTML,Hypertext Markup Language|HTML5|use HTML,knowledge,,,true,http://data.europa.eu/esco/skill/0af062de-eb43-41e9-9b96-249e2cd22d26,use HTML,HTML is narrower than use markup languages; reassign only the explicit HTML alias.
+urn:resume-job-matcher:skill:c-programming,C (programming language),C programming|C programming language|C language|programming in C|programmed in C|code in C|coded in C|written in C,knowledge,C,Programming Languages|Coding Languages,false,,,C is ambiguous; require qualified wording or a standalone item in a labeled programming-language list.
