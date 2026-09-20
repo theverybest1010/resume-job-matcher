@@ -26,7 +26,11 @@ def main():
     )
     report = MatchingPipeline(extractor).analyze_documents(args.resume, args.job)
     print(f'TF-IDF similarity: {report.tfidf_similarity:.1%}')
-    print(f'Detected skill coverage: {report.skill_gap.match_percentage:.1f}%')
+    if report.has_confirmed_job_skills:
+        print(f'Confirmed skill coverage: {report.skill_gap.match_percentage:.1f}%')
+    else:
+        print('Confirmed skill coverage: N/A (no confirmed job skills)')
+    print('Coverage excludes unreviewed semantic suggestions on both documents.')
     for heading, values in (
         ('Matched', report.skill_gap.matched_skills),
         ('Missing', report.skill_gap.missing_skills),
@@ -35,11 +39,20 @@ def main():
         print(f'\n{heading}:')
         for skill in values:
             print(' -', skill.preferred_label)
+    for heading, mentions in (
+        ('Resume suggestions - excluded from coverage', report.resume_suggestions),
+        ('Job suggestions - excluded from coverage', report.job_suggestions),
+    ):
+        print(f'\n{heading}:')
+        for mention in mentions:
+            print(f' - {mention.matched_text!r} -> {mention.skill.preferred_label}'
+                  f' ({mention.score:.3f})')
     if args.show_evidence:
         for heading, mentions in (('Resume', report.resume_mentions), ('Job', report.job_mentions)):
             print(f'\n{heading} evidence:')
             for mention in mentions:
-                print(mention.source, f'{mention.score:.3f}', repr(mention.matched_text),
+                print('CONFIRMED' if mention.is_confirmed else 'SUGGESTION',
+                      mention.source, f'{mention.score:.3f}', repr(mention.matched_text),
                       '->', mention.skill.preferred_label)
 
 

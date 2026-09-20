@@ -5,10 +5,11 @@ from resume_matcher.candidate_phrases import CandidatePhraseExtractor
 from resume_matcher.semantic_matcher import SemanticSkillMatcher
 from resume_matcher.skill_extractor import ExactSkillExtractor
 from resume_matcher.skills import Skill
+from resume_matcher.match_confirmation import GrammaticalMatchVerifier
 
 
 # Identifies whether a skill was found through exact or semantic matching.
-MatchSource = Literal["exact", "semantic"]
+MatchSource = Literal["exact", "grammatical", "semantic"]
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,12 @@ class HybridSkillMention:
     # Exact matches receive 1.0.
     # Semantic matches receive their cosine similarity score.
     score: float
+
+
+    @property
+    def is_confirmed(self) -> bool:
+        """Accepted by lexical rules; this does not establish proficiency."""
+        return self.source in {"exact", "grammatical"}
 
 
 class HybridSkillExtractor:
@@ -46,12 +53,14 @@ class HybridSkillExtractor:
         self.candidate_extractor = candidate_extractor
         self.semantic_matcher = semantic_matcher
         self.min_semantic_score = min_semantic_score
+        nlp = getattr(candidate_extractor, "nlp", None)
+        self._verifier = GrammaticalMatchVerifier(nlp) if nlp is not None else None
 
     def extract(
         self,
         text: str,
     ) -> list[HybridSkillMention]:
-        """Extract canonical skills using exact and semantic methods."""
+        """Return confirmed mentions and unconfirmed semantic suggestions."""
 
         results: list[HybridSkillMention] = []
         seen_skill_uris: set[str] = set()
@@ -116,11 +125,18 @@ class HybridSkillExtractor:
 
             best_match = phrase_matches[0]
             skill_uri = best_match.skill.uri
+            if not best_match.skill.allow_semantic_matching:
+                continue
+            source = "semantic"
+            if self._verifier is not None and self._verifier.confirms(
+                phrase, best_match.skill.preferred_label
+            ):
+                source = "grammatical"
 
             semantic_mention = HybridSkillMention(
                 skill=best_match.skill,
                 matched_text=phrase,
-                source="semantic",
+                source=source,
                 score=best_match.score,
             )
 
@@ -128,7 +144,11 @@ class HybridSkillExtractor:
             # same skill. Previously the first phrase always won.
             if skill_uri in semantic_indices:
                 index = semantic_indices[skill_uri]
-                if best_match.score > results[index].score:
+                old = results[index]
+                # Confirmation takes precedence over a higher-scoring suggestion.
+                if (semantic_mention.is_confirmed, best_match.score) > (
+                    old.is_confirmed, old.score
+                ):
                     results[index] = semantic_mention
                 continue
 

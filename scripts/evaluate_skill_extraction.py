@@ -86,7 +86,7 @@ def resolve_targets(skills, cases=CASES):
 
 def check_case(case, mentions, targets):
     """Grade only explicitly annotated requirements, comparing skill IDs."""
-    detected = {mention.skill.uri for mention in mentions}
+    detected = {mention.skill.uri for mention in mentions if mention.is_confirmed}
     missing = [label for label in case.required if targets[label] not in detected]
     unwanted = [label for label in case.forbidden if targets[label] in detected]
     return missing, unwanted
@@ -135,7 +135,8 @@ def main():
             passed += 1
         print(f'\n[{status}] {case.name}\nText: {case.text}')
         for mention in mentions:
-            print(f'  {mention.source} {mention.score:.3f} '
+            print(f'  {"CONFIRMED" if mention.is_confirmed else "SUGGESTION"} '
+                  f'{mention.source} {mention.score:.3f} '
                   f'{mention.matched_text!r} -> {mention.skill.preferred_label}')
         if not mentions:
             print('  No skills detected.')
@@ -147,7 +148,8 @@ def main():
             print('  REVIEW:', case.review_note)
 
     print(f'\nTargeted cases: {passed} passed, {failed} failed; {review_only} review-only.')
-    print('PASS covers only listed requirements. Other predictions are ungraded.')
+    print('PASS covers listed confirmed-match requirements only; suggestions do not count.')
+    print('Other predictions are ungraded. Suggestions may still be incorrect.')
     print('These development examples do not estimate overall precision or recall.')
     return 1 if failed else 0
 

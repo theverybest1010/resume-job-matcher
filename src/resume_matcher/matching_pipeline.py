@@ -21,6 +21,18 @@ class ResumeJobMatchReport:
     skill_gap: SkillGapReport
     tfidf_similarity: float
 
+    @property
+    def resume_suggestions(self) -> tuple[HybridSkillMention, ...]:
+        return tuple(m for m in self.resume_mentions if not m.is_confirmed)
+
+    @property
+    def job_suggestions(self) -> tuple[HybridSkillMention, ...]:
+        return tuple(m for m in self.job_mentions if not m.is_confirmed)
+
+    @property
+    def has_confirmed_job_skills(self) -> bool:
+        return any(m.is_confirmed for m in self.job_mentions)
+
 
 class MatchingPipeline:
     """Combine skill extraction, skill comparison, and text similarity."""
@@ -61,10 +73,10 @@ class MatchingPipeline:
         #    This produces matched, missing, and additional skills.
         skill_gap = compare_skills(
             resume_skills=[
-                mention.skill for mention in resume_mentions
+                mention.skill for mention in resume_mentions if mention.is_confirmed
             ],
             job_skills=[
-                mention.skill for mention in job_mentions
+                mention.skill for mention in job_mentions if mention.is_confirmed
             ],
         )
 
