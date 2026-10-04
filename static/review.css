@@ -1,0 +1,5 @@
+.review-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.review-controls button { border: 1px solid #d2d5da; background: #fff; color: #343a43; border-radius: 9px; padding: 10px 13px; min-height: 44px; font: inherit; font-size: 13px; cursor: pointer; }
+.review-controls button[aria-pressed="true"] { background: #e5edf9; border-color: #366dc7; color: #193c74; }
+.review-controls button:focus-visible { outline: 3px solid #366dc7; outline-offset: 3px; }
+.review-status { color: #68707a; font-size: 12px; }

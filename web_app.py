@@ -20,21 +20,24 @@ def build_pipeline():
 
     path = Path(os.environ.get('ESCO_PATH', ROOT / 'data/raw/esco/skills_en.csv'))
     skills = load_skill_catalog(path)
-    return MatchingPipeline(HybridSkillExtractor(
+    semantic = SemanticSkillMatcher(skills)
+    pipeline = MatchingPipeline(HybridSkillExtractor(
         exact_extractor=ExactSkillExtractor(skills),
         candidate_extractor=CandidatePhraseExtractor(),
-        semantic_matcher=SemanticSkillMatcher(skills),
+        semantic_matcher=semantic,
         min_semantic_score=0.75,
     ))
+    pipeline.review_model = semantic.model
+    return pipeline
 
 
-def serialize_report(report):
+def serialize_report(report, model=None):
     def evidence(mention):
-        return {'skill': mention.skill.preferred_label, 'text': mention.matched_text,
+        return {'uri': mention.skill.uri, 'skill': mention.skill.preferred_label, 'text': mention.matched_text,
                 'source': mention.source}
     gap = report.skill_gap
     required = len(gap.matched_skills) + len(gap.missing_skills)
-    return {
+    data = {
         'coverage': round(gap.match_percentage, 1) if required else None,
         'matched_count': len(gap.matched_skills), 'required_count': required,
         'text_similarity': round(report.tfidf_similarity * 100, 1),
@@ -46,6 +49,9 @@ def serialize_report(report):
         'resume_suggestions': [evidence(m) for m in report.resume_suggestions],
         'job_suggestions': [evidence(m) for m in report.job_suggestions],
     }
+    from pair_review import build_pair_review
+    data["requirements"] = build_pair_review(report, model)
+    return data
 
 
 def create_app(pipeline_factory=None):
@@ -134,7 +140,7 @@ def create_app(pipeline_factory=None):
                     app.logger.error('Matcher startup failed: %s', type(error).__name__)
                     return jsonify(error='The matcher could not start. Check the server setup and ESCO dataset, then retry.'), 503
             try:
-                return jsonify(serialize_report(pipeline.analyze(resume_text, job_text)))
+                return jsonify(serialize_report(pipeline.analyze(resume_text, job_text), getattr(pipeline, "review_model", None)))
             except ValueError:
                 return jsonify(error='There is not enough usable text to compare. Please check both documents.'), 400
             except Exception:

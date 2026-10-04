@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');const {reviewedCoverage}=require('../static/review.js');
+const data={additional:[],requirements:[{uri:'a',skill:'A',matched:true,candidates:[]},{uri:'b',skill:'B',matched:false,candidates:[{},{}]},{uri:'c',skill:'C',matched:false,candidates:[{}]}]};
+const b=JSON.stringify(['b',0]), b2=JSON.stringify(['b',1]), c=JSON.stringify(['c',0]);
+assert.equal(reviewedCoverage(data,{}).coverage,33.3);
+assert.equal(reviewedCoverage(data,{[b]:'rejected'}).coverage,33.3);
+assert.equal(reviewedCoverage(data,{[b]:'accepted'}).coverage,66.7);
+assert.equal(reviewedCoverage(data,{[b]:'accepted',[b2]:'accepted'}).coverage,66.7);
+assert.equal(reviewedCoverage(data,{[b]:'accepted',[c]:'accepted'}).coverage,100);
+for(const decisions of [{},{[b]:'accepted'},{[b]:'rejected'},{[b]:'accepted',[c]:'accepted'}])assert.equal(reviewedCoverage(data,decisions).required_count,3);
+assert.equal(reviewedCoverage({additional:[],requirements:[]},{}).coverage,null);
+console.log('10 pair coverage assertions passed');

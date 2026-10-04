@@ -4,6 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Résumé Match — See where you fit</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
+  <script src="{{ url_for('static', filename='review.js') }}" defer></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -28,10 +30,11 @@
     </form>
     <section id="results" class="hidden" aria-labelledby="results-title" tabindex="-1">
       <div class="results-heading"><div><p class="eyebrow">YOUR COMPARISON</p><h2 id="results-title">A clearer picture.</h2></div><button type="button" class="text-button" id="start-over">Start over ↗</button></div>
-      <div class="summary"><div class="score"><span id="coverage"></span><strong>Confirmed skill coverage</strong><p id="coverage-count"></p></div><div class="summary-copy"><h3>A starting point, not a verdict.</h3><p>This compares confirmed extracted skills, not your overall fit or chance of getting hired. Unreviewed suggestions are excluded from both documents.</p><p class="suggestion-count" id="suggestion-count"></p><small id="similarity"></small></div></div>
+      <div class="summary"><div class="score"><span id="coverage" aria-live="polite" aria-atomic="true"></span><strong>Reviewed skill coverage</strong><p id="coverage-count"></p></div><div class="summary-copy"><h3>A starting point, not a verdict.</h3><p>Coverage counts automatically matched skills plus résumé–job pairs you approve. All detected job skills, including model interpretations, are in the fixed requirement total from the start. Review that list below.</p><p class="suggestion-count" id="suggestion-count"></p><small id="similarity"></small></div></div>
       <div class="skill-grid"><section class="result-card"><span class="category green">IN COMMON</span><h3>Matched skills <span id="matched-count"></span></h3><ul id="matched"></ul></section><section class="result-card"><span class="category amber">TAKE A CLOSER LOOK</span><h3>Not found in your résumé <span id="missing-count"></span></h3><p class="hint">If you have this experience, add a specific, truthful example.</p><ul id="missing"></ul></section></div>
       <details><summary>Other skills in your résumé <span id="additional-count"></span></summary><ul id="additional" class="chips"></ul></details>
-      <details open><summary>Suggestions to review <span id="review-count"></span></summary><p class="hint">These related concepts need a closer look. They aren’t confirmed and don’t count toward coverage.</p><div class="suggestions-grid"><section><h3>From your résumé</h3><ul id="resume-suggestions" class="evidence"></ul></section><section><h3>From the job description</h3><ul id="job-suggestions" class="evidence"></ul></section></div></details>
+      <details open><summary>Possible matches awaiting your decision <span id="review-count"></span></summary><p class="hint">Does this résumé evidence satisfy the job skill? Equivalent adds one matched skill; Not equivalent adds no credit. Each job skill counts once, even if you accept multiple pairs. Click a selected choice to undo. Decisions reset on a new comparison or reload.</p><ul id="pair-suggestions" class="evidence"></ul></details>
+      <details><summary>Job skills included in the score</summary><p class="hint">This list is fixed during review. Extracted skills can be incorrect; review the source wording. The score is not a hiring prediction.</p><ul id="requirements-list" class="evidence"></ul></details>
       <details><summary>Why these skills matched</summary><p class="hint">“Confirmed” means a label or grammatical variation matched. It does not verify proficiency or resolve every ambiguity.</p><div class="suggestions-grid"><section><h3>Résumé evidence</h3><ul id="resume-evidence" class="evidence"></ul></section><section><h3>Job evidence</h3><ul id="job-evidence" class="evidence"></ul></section></div></details>
     </section>
   </main>

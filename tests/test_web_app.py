@@ -27,7 +27,7 @@ def pdf_bytes():
 
 
 def report():
-    skill = Obj(preferred_label='Python')
+    skill = Obj(uri='test:python', preferred_label='Python')
     mention = Obj(skill=skill, matched_text='Python', source='exact', is_confirmed=True)
     return Obj(skill_gap=Obj(matched_skills=[skill], missing_skills=[], additional_skills=[], match_percentage=100),
                tfidf_similarity=.4, resume_mentions=[mention], job_mentions=[mention],

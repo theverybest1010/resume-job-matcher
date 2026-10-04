@@ -100,21 +100,63 @@ function renderEvidence(id, items) {
     li.append(label, quote); list.append(li);
   }
 }
+let currentReport = null;
+let reviewDecisions = {};
+function refreshCoverage() {
+  const result = reviewedCoverage(currentReport, reviewDecisions);
+  $('coverage').textContent = result.coverage === null ? '—' : `${result.coverage}%`;
+  $('coverage-count').textContent = result.required_count
+    ? `${result.matched_count} of ${result.required_count} included job skills found`
+    : 'No included job skills. Review the suggestions below.';
+  const total = currentReport.requirements.reduce((n, row) => n + row.candidates.length, 0);
+  const accepted = Object.values(reviewDecisions).filter(x => x === 'accepted').length;
+  const rejected = Object.values(reviewDecisions).filter(x => x === 'rejected').length;
+  $('suggestion-count').textContent = `${accepted} accepted · ${rejected} rejected · ${total - accepted - rejected} awaiting review. Pending and rejected pairs earn no credit. The job requirement total stays fixed.`;
+  renderList('matched', result.matched, 'No included skills in common.');
+  renderList('missing', result.missing, result.required_count ? 'No gaps among included job skills.' : 'No included job skills to compare.');
+  renderList('additional', result.additional, 'No additional included skills.');
+  for (const key of ['matched', 'missing', 'additional']) $(`${key}-count`).textContent = `(${result[key].length})`;
+}
+function renderPairs() {
+  const list = $('pair-suggestions'); list.replaceChildren();
+  let count = 0;
+  for (const row of currentReport.requirements) row.candidates.forEach((candidate, index) => {
+    count++;
+    const key = JSON.stringify([row.uri, index]);
+    const li = document.createElement('li');
+    const label = document.createElement('strong'); label.textContent = `Job skill: ${row.skill}`;
+    const job = document.createElement('p'); job.textContent = `Job says: “${candidate.job_text}”`;
+    const resume = document.createElement('p'); resume.textContent = `Résumé says: “${candidate.resume_text}”`;
+    const controls = document.createElement('div'); controls.className = 'review-controls';
+    controls.setAttribute('role','group'); controls.setAttribute('aria-label', `Does this résumé evidence satisfy ${row.skill}?`);
+    const status = document.createElement('p'); status.className='review-status'; status.setAttribute('aria-live','polite');
+    const buttons=[];
+    function update() {
+      for (const [button,decision] of buttons) button.setAttribute('aria-pressed', String(reviewDecisions[key]===decision));
+      status.textContent=reviewDecisions[key]==='accepted' ? 'Accepted by you · this job skill counts as matched'
+        :reviewDecisions[key]==='rejected' ? 'Rejected · no credit from this pair' : 'Awaiting decision · no credit yet';
+    }
+    for(const [decision,title] of [['rejected','✕ Not equivalent'],['accepted','✓ Equivalent']]) {
+      const button=document.createElement('button'); button.type='button'; button.textContent=title;
+      button.addEventListener('click',()=>{
+        if(reviewDecisions[key]===decision) delete reviewDecisions[key]; else reviewDecisions[key]=decision;
+        update(); refreshCoverage();
+      }); buttons.push([button,decision]); controls.append(button);
+    }
+    update(); li.append(label,job,resume,controls,status); list.append(li);
+  });
+  if(!count) renderList('pair-suggestions', [], 'No additional résumé–job pairs were found for review.');
+  $('review-count').textContent=`(${count})`;
+  const requirements=$('requirements-list'); requirements.replaceChildren();
+  for(const row of currentReport.requirements) {
+    const li=document.createElement('li'); li.textContent=`${row.skill} — “${row.texts.join('”; “')}”${row.confirmed ? '' : ' (model interpretation)'}`; requirements.append(li);
+  }
+}
 function renderReport(data) {
-  $('coverage').textContent = data.coverage === null ? '—' : `${data.coverage}%`;
-  $('coverage-count').textContent = data.required_count
-    ? `${data.matched_count} of ${data.required_count} confirmed job skills found`
-    : 'No confirmed job skills found. Review the suggestions below.';
-  const reviewCount = data.resume_suggestions.length + data.job_suggestions.length;
-  $('suggestion-count').textContent = `${data.job_suggestions.length} job suggestions and ${data.resume_suggestions.length} résumé suggestions excluded from coverage.`;
+  currentReport = data; reviewDecisions = {};
+  refreshCoverage();
   $('similarity').textContent = `Text similarity: ${data.text_similarity}% · A separate wording comparison.`;
-  renderList('matched', data.matched, 'No confirmed skills in common were found.');
-  renderList('missing', data.missing, data.required_count ? 'No gaps among the confirmed job skills.' : 'No confirmed job skills to compare.');
-  renderList('additional', data.additional, 'No additional confirmed skills found.');
-  for (const key of ['matched', 'missing', 'additional']) $(`${key}-count`).textContent = `(${data[key].length})`;
-  $('review-count').textContent = `(${reviewCount})`;
-  renderEvidence('resume-suggestions', data.resume_suggestions);
-  renderEvidence('job-suggestions', data.job_suggestions);
+  renderPairs();
   renderEvidence('resume-evidence', data.resume_evidence);
   renderEvidence('job-evidence', data.job_evidence);
   $('results').classList.remove('hidden');
