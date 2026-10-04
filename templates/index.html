@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Résumé Match — See where you fit</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/" aria-label="Résumé Match home"><span class="brand-mark" aria-hidden="true">≋</span> Résumé Match</a><span class="badge">Research prototype</span></header>
+  <main>
+    <section class="intro"><p class="eyebrow">A LITTLE CLARITY FOR YOUR NEXT STEP</p><h1>See where you fit.</h1><p>Bring your résumé and a job description.<br>Discover the skills you share, and what needs a closer look.</p></section>
+    <form id="compare-form">
+      <div class="upload-grid">
+        <section class="upload-card"><div class="card-title"><span class="step">01</span><h2>Your résumé</h2></div>
+          <label class="dropzone" id="resume-zone" for="resume"><input type="file" id="resume" accept=".pdf,application/pdf" aria-describedby="resume-help"><span class="upload-icon" aria-hidden="true">↑</span><strong id="resume-name">Drop your résumé here</strong><span id="resume-help">or <span class="link">browse files</span></span><small>PDF · up to 5 MB</small></label>
+          <button class="text-button hidden" id="remove-resume" type="button">Remove file</button>
+        </section>
+        <section class="upload-card"><div class="card-title"><span class="step">02</span><h2>The opportunity</h2></div>
+          <div class="mode-switch" role="group" aria-label="Job description input"><button type="button" id="paste-mode" aria-pressed="true">Paste text</button><button type="button" id="link-mode" aria-pressed="false">Use a link</button></div>
+          <div id="job-paste"><label class="sr-only" for="job-text">Job description</label><textarea id="job-text" maxlength="50000" placeholder="Paste the responsibilities, requirements, and skills here…"></textarea></div>
+          <div id="job-link" class="hidden"><label for="job-url" class="url-label">Job posting URL</label><input id="job-url" type="url" placeholder="https://company.com/careers/role" maxlength="2048"><p class="hint">Use a public job posting. Some sites require sign-in or block access. You can always paste the text instead.</p><p class="hint">Imported pages may include navigation or other text. Review the evidence in your results.</p></div>
+        </section>
+      </div>
+      <p id="error" class="error hidden" role="alert" tabindex="-1"></p>
+      <div class="action-area"><button id="compare" class="primary" type="submit">Compare documents <span aria-hidden="true">↗</span></button><p class="privacy">No account. No saved uploads. Files are processed on the server and removed after reading.</p></div>
+      <div id="loading" class="loading hidden" role="status"><span class="spinner" aria-hidden="true"></span><div><strong>Finding the connections…</strong><p>The first comparison may take a few minutes while the model loads.</p></div></div>
+    </form>
+    <section id="results" class="hidden" aria-labelledby="results-title" tabindex="-1">
+      <div class="results-heading"><div><p class="eyebrow">YOUR COMPARISON</p><h2 id="results-title">A clearer picture.</h2></div><button type="button" class="text-button" id="start-over">Start over ↗</button></div>
+      <div class="summary"><div class="score"><span id="coverage"></span><strong>Confirmed skill coverage</strong><p id="coverage-count"></p></div><div class="summary-copy"><h3>A starting point, not a verdict.</h3><p>This compares confirmed extracted skills, not your overall fit or chance of getting hired. Unreviewed suggestions are excluded from both documents.</p><p class="suggestion-count" id="suggestion-count"></p><small id="similarity"></small></div></div>
+      <div class="skill-grid"><section class="result-card"><span class="category green">IN COMMON</span><h3>Matched skills <span id="matched-count"></span></h3><ul id="matched"></ul></section><section class="result-card"><span class="category amber">TAKE A CLOSER LOOK</span><h3>Not found in your résumé <span id="missing-count"></span></h3><p class="hint">If you have this experience, add a specific, truthful example.</p><ul id="missing"></ul></section></div>
+      <details><summary>Other skills in your résumé <span id="additional-count"></span></summary><ul id="additional" class="chips"></ul></details>
+      <details open><summary>Suggestions to review <span id="review-count"></span></summary><p class="hint">These related concepts need a closer look. They aren’t confirmed and don’t count toward coverage.</p><div class="suggestions-grid"><section><h3>From your résumé</h3><ul id="resume-suggestions" class="evidence"></ul></section><section><h3>From the job description</h3><ul id="job-suggestions" class="evidence"></ul></section></div></details>
+      <details><summary>Why these skills matched</summary><p class="hint">“Confirmed” means a label or grammatical variation matched. It does not verify proficiency or resolve every ambiguity.</p><div class="suggestions-grid"><section><h3>Résumé evidence</h3><ul id="resume-evidence" class="evidence"></ul></section><section><h3>Job evidence</h3><ul id="job-evidence" class="evidence"></ul></section></div></details>
+    </section>
+  </main>
+  <footer><span>Built for understanding. Designed to be explainable.</span><span>Results can miss or misinterpret skills.</span></footer>
+</body>
+</html>
