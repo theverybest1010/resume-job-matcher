@@ -1,3 +1,5 @@
+> Current mechanism. For the complete API/CLI distinction and limitations, see [scoring](scoring.md) and [web API](web-interface.md).
+
 # Review resume–job pairs
 
 Replaces the independent phrase-to-catalog approval buttons. Each pair shows

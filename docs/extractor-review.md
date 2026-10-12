@@ -1,3 +1,5 @@
+> Historical investigation: examples and validation notes reflect the work at that time, not an overall accuracy benchmark. See [current architecture](architecture.md).
+
 # Skill extractor review and replacement files
 
 This bundle contains complete replacement files based on the uploaded

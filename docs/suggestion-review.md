@@ -1,3 +1,5 @@
+> Historical design: superseded by résumé–job pair review. Do not implement the old per-document approval scoring. See [current scoring](scoring.md).
+
 # Suggestion review
 
 Applies to the original confirmed-skill website, before weighted coverage.

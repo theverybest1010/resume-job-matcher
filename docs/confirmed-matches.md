@@ -1,3 +1,5 @@
+> Scope: this note describes the confirmed-only core pipeline/CLI. The website adds a separate reviewed score; see [current scoring](scoring.md).
+
 # Confirmed matches and semantic suggestions
 
 `HybridSkillExtractor.extract` still returns all retained mentions. Check
